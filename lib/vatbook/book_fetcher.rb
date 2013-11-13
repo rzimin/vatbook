@@ -99,10 +99,12 @@ module Vatbook
           curl = Curl::Easy.new('http://vatbook.euroutepro.com/xml2.php')
           curl.timeout = 5
           curl.perform
-          curl = curl.body_str
+          curl = curl.body_str.encode('UTF-8');
+
           data = Tempfile.new('vatbook', :encoding => 'utf-8')
           File.rename data.path, LOCAL_DATA
-          File.open(LOCAL_DATA, "w+") {|f| f.write(curl)}
+          data = ccurl.gsub(/["]/, '\s').encode!('UTF-16', 'UTF-8', :invalid => :replace, :replace => '').encode!('UTF-8', 'UTF-16')
+          File.open(LOCAL_DATA, "w+") {|f| f.write(data)}
           File.chmod(0777, LOCAL_DATA)
           gem_data_file if curl.include? "<html><head>"
           gem_data_file if File.open(LOCAL_DATA).size == 0
