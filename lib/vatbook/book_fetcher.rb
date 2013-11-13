@@ -12,7 +12,7 @@ module Vatbook
       process_arguments(args) if args.class == Hash
       @atc_bookings = []; @pilot_bookings = []; @atc_rus_bookings = []
       @doc = raw_list
-      atc
+      atcs
       atcs_rus
       pilots
     end
