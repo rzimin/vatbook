@@ -108,14 +108,14 @@ module Vatbook
           File.chmod(0777, LOCAL_DATA)
           gem_data_file if curl.include? "<html><head>"
           gem_data_file if File.open(LOCAL_DATA).size == 0
-        rescue Curl::Err::HostResolutionError
-          gem_data_file
-        rescue Curl::Err::TimeoutError
-          gem_data_file
-        rescue
-          gem_data_file
-        rescue Exception
-          gem_data_file    
+        #rescue Curl::Err::HostResolutionError
+         # gem_data_file
+        #rescue Curl::Err::TimeoutError
+         # gem_data_file
+        #rescue
+         # gem_data_file
+        #rescue Exception
+         # gem_data_file    
     end
 
   end
