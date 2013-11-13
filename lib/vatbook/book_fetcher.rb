@@ -99,7 +99,6 @@ module Vatbook
           curl = Curl::Easy.new('http://vatbook.euroutepro.com/xml2.php')
           curl.timeout = 5
           curl.perform
-          curl = curl.body_str.encode('UTF-8');
 
           data = Tempfile.new('vatbook', :encoding => 'utf-8')
           File.rename data.path, LOCAL_DATA
