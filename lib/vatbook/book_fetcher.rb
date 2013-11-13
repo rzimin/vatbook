@@ -12,7 +12,7 @@ module Vatbook
       process_arguments(args) if args.class == Hash
       @atc_bookings = []; @pilot_bookings = [];
       @doc = raw_list
-      atcs
+      atcs_rus
       pilots
     end
 
@@ -45,6 +45,13 @@ module Vatbook
     def atcs
       @doc.css("atcs booking").each do |booking|
         @atc_bookings << Booking.new(booking, role = "atc", @fir)
+      end
+    end
+
+    def atcs_rus
+      @doc.css("atcs booking").each do |booking|
+        callsign = booking.children.css("callsign").first.children.to_s
+        @atc_bookings << Booking.new(booking, role = "atc", @fir) if booking.callsign[0]=='U'
       end
     end
 
