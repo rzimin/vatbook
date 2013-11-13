@@ -85,7 +85,8 @@ module Vatbook
 
    def data_file      
       File.exists?(LOCAL_DATA) ? read_local_datafile : create_local_data_file
-      LOCAL_DATA    
+      LOCAL_DATA
+      Nokogiri::XML(open(LOCAL_DATA))    
     end
    
     def read_local_datafile
