@@ -102,7 +102,7 @@ module Vatbook
           curl = curl.body_str
           data = Tempfile.new('vatbook', :encoding => 'utf-8')
           File.rename data.path, LOCAL_DATA
-          File.open(LOCAL_DATA, "w+") {|f| f.write(data)}
+          File.open(LOCAL_DATA, "w+") {|f| f.write(curl)}
           File.chmod(0777, LOCAL_DATA)
           gem_data_file if curl.include? "<html><head>"
           gem_data_file if File.open(LOCAL_DATA).size == 0
