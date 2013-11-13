@@ -10,8 +10,9 @@ module Vatbook
       @fir = fir.upcase
       @enroute = true
       process_arguments(args) if args.class == Hash
-      @atc_bookings = []; @pilot_bookings = [];
+      @atc_bookings = []; @pilot_bookings = []; @atc_rus_bookings = []
       @doc = raw_list
+      atc
       atcs_rus
       pilots
     end
@@ -21,11 +22,15 @@ module Vatbook
     end
 
     def fetch
-       {:atc => atc_bookings, :pilots => pilot_bookings}
+       {:atc => atc_bookings, :pilots => pilot_bookings, :atc_rus => atc_rus_bookings}
     end
 
     def atc_bookings
       @atc_bookings
+    end
+
+     def atc_rus_bookings
+      @atc_rus_bookings
     end
 
     def pilot_bookings
@@ -51,7 +56,7 @@ module Vatbook
     def atcs_rus
       @doc.css("atcs booking").each do |booking|
         callsign = booking.children.css("callsign").first.children.to_s
-        @atc_bookings << Booking.new(booking, role = "atc", @fir) if booking.callsign[0]=='U'
+        @atc_rus_bookings << Booking.new(booking, role = "atc", @fir) if booking.callsign[0]=='U'
       end
     end
 
