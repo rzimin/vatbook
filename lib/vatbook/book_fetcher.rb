@@ -4,6 +4,9 @@ module Vatbook
     %w{curb tempfile time_diff tmpdir csv}.each { |lib| require lib }
     require 'nokogiri'
     require 'open-uri'
+    require 'new_relic/agent/method_tracer'
+    include ::NewRelic::Agent::MethodTracer
+
 
     STATUS_URL = "http://status.vatsim.net/status.txt"
     LOCAL_STATUS = "#{Dir.tmpdir}/vatsim_status.txt"
@@ -117,6 +120,18 @@ module Vatbook
          # gem_data_file    
     end
 
+    add_method_tracer :create_local_data_file, ':create_local_data_file'
+    add_method_tracer :read_local_datafile, ':read_local_datafile'
+
+    add_method_tracer :data_file, ':data_file'
+    add_method_tracer :pilots, ':pilots'
+
+
+    add_method_tracer :atcs_rus, ':atc_rus'
+    add_method_tracer :atcs, ':atcs'
+
+     add_method_tracer :raw_list, ':raw_list'
   end
 
 end
+
