@@ -1,41 +1,139 @@
 module Vatbook
 
-  class Booking
+  class BookFetcher
+    %w{curb tempfile time_diff tmpdir csv}.each { |lib| require lib }
     require 'nokogiri'
+    require 'open-uri'
+    require 'new_relic/agent/method_tracer'
+    include ::NewRelic::Agent::MethodTracer
 
-    attr_accessor :role, :callsign, :name, :cid, :start, :end, :dep, :arr
-    attr_accessor :aircraft, :route, :enroute, :fir
 
-    def initialize(booking, role, fir)
-      @fir = fir
-      @role = role
-      @callsign = booking.children.css("callsign").first.children.to_s
-      @name = booking.children.css("name").first.children.to_s
-      @role == "atc" ? @cid = booking.children.css("cid").first.children.to_s : @cid = booking.children.css("pid").first.children.to_s
-      if @role == "atc"
-        @start = booking.children.css("time_start").first.children.to_s
-        @end = booking.children.css("time_end").first.children.to_s
-      elsif @role == "pilot"
-        @dep = booking.children.css("dep").first.children.to_s
-        @arr = booking.children.css("arr").first.children.to_s
-        @route = booking.children.css("route").first.children.to_s.gsub(/[\n]/, ' ').strip
-        @start = booking.children.css("from").first.children.to_s
-        @end = booking.children.css("to").first.children.to_s
-        @aircraft = booking.children.css("actype").first.children.to_s
-        check_enroute
+    STATUS_URL = "http://status.vatsim.net/status.txt"
+    LOCAL_STATUS = "#{Dir.tmpdir}/vatsim_status.txt"
+    LOCAL_DATA = "#{Dir.tmpdir}/vatbook.xml"
+
+
+    attr_accessor :fir, :atc_bookings, :pilot_bookings, :enroute, :doc
+
+    def initialize(fir, args = nil)
+      @fir = fir.upcase
+      @enroute = true
+      process_arguments(args) if args.class == Hash
+      @atc_bookings = []; @pilot_bookings = []; @atc_rus_bookings = []
+      fir == '' ? @doc = data_file : @doc = raw_list
+      #atcs
+      atcs_rus
+      pilots
+    end
+
+    def raw_list
+      Nokogiri::XML(open("http://vatbook.euroutepro.com/xml2.php?fir=#{@fir}"))
+    end
+
+    def fetch
+       {:atc => atc_bookings, :pilots => pilot_bookings, :atc_rus => atc_rus_bookings}
+    end
+
+    def atc_bookings
+      @atc_bookings
+    end
+
+     def atc_rus_bookings
+      @atc_rus_bookings
+    end
+
+    def pilot_bookings
+      @pilot_bookings
+    end
+
+    def atcs_count
+      @doc.css("atcs booking").count
+    end
+
+    def pilots_count
+      @doc.css("pilots booking").count
+    end
+
+    private
+
+    def atcs
+      @doc.css("atcs booking").each do |booking|
+        @atc_bookings << Booking.new(booking, role = "atc", @fir)
       end
     end
 
-  private
-
-    def check_enroute
-      if @fir[0..1] == @dep[0..1] or @fir[0..1] == @arr[0..1]
-        @enroute = false
-      else
-        @enroute = true
+    def atcs_rus
+      @doc.css("atcs booking").each do |booking|
+        @dbvar = booking
+        logger.debug "============booking========: #{booking.inspect}"
+        callsign = booking.children.css("callsign").first.children.to_s
+        @atc_rus_bookings << Booking.new(booking, role = "atc", @fir) if callsign[0]=='U'
       end
     end
 
+    def pilots
+      @doc.css("pilots booking").each do |booking|
+        if @enroute == false
+          bk = Booking.new(booking, role = "pilot", @fir)
+          if bk.enroute == false
+            @pilot_bookings << bk
+          end
+        else
+          @pilot_bookings << Booking.new(booking, role = "pilot", @fir)
+        end
+      end
+    end
+
+    def process_arguments(args)
+      args[:enroute] == false ? @enroute = false : @enroute = true
+    end
+
+   def data_file      
+      File.exists?(LOCAL_DATA) ? read_local_datafile : create_local_data_file
+      LOCAL_DATA
+      Nokogiri::XML(open(LOCAL_DATA))    
+    end
+   
+    def read_local_datafile
+      data = File.open(LOCAL_DATA)
+      difference = Time.diff(data.ctime, Time.now)[:minute]
+      difference > 2 ? create_local_data_file : data.read
+    end
+
+    def create_local_data_file
+          curl = Curl::Easy.new('http://vatbook.euroutepro.com/xml2.php')
+          curl.timeout = 5
+          curl.perform
+          curl = curl.body_str
+          data = Tempfile.new('vatbook', :encoding => 'utf-8')
+          File.rename data.path, LOCAL_DATA
+          data = curl.gsub(/["]/, '\s').encode!('UTF-16', 'UTF-8', :invalid => :replace, :replace => '').encode!('UTF-8', 'UTF-16')
+          File.open(LOCAL_DATA, "w+") {|f| f.write(data)}
+          File.chmod(0777, LOCAL_DATA)
+          gem_data_file if curl.include? "<html><head>"
+          gem_data_file if File.open(LOCAL_DATA).size == 0
+        #rescue Curl::Err::HostResolutionError
+         # gem_data_file
+        #rescue Curl::Err::TimeoutError
+         # gem_data_file
+        #rescue
+         # gem_data_file
+        #rescue Exception
+         # gem_data_file    
+    end
+
+    add_method_tracer :create_local_data_file, ':create_local_data_file'
+    add_method_tracer :read_local_datafile, ':read_local_datafile'
+
+    add_method_tracer :data_file, ':data_file'
+    add_method_tracer :pilots, ':pilots'
+
+
+    add_method_tracer :atcs_rus, ':atc_rus'
+    add_method_tracer :atcs, ':atcs'
+
+     add_method_tracer :raw_list, ':raw_list'
   end
 
 end
+
