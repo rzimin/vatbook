@@ -64,6 +64,7 @@ module Vatbook
 
     def atcs_rus
       @doc.css("atcs booking").each do |booking|
+        @dbvar = booking
         callsign = booking.children.css("callsign").first.children.to_s
         @atc_rus_bookings << Booking.new(booking, role = "atc", @fir) if callsign[0]=='U'
       end
@@ -134,4 +135,3 @@ module Vatbook
   end
 
 end
-
